@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AM - Interactive Landing Page & Portfolio Specialist</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Using Space Grotesk for technical/aerospace feel, Inter for premium legibility -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --emerald: #00F076;
+            --emerald-glow: rgba(0, 240, 118, 0.2);
+            --gold: #D4AF37;
+            --dark-bg: #030705;
+            --text-main: #FFFFFF;
+            --text-muted: #9CA3AF;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--dark-bg);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+        }
+
+        /* 3D Canvas Container */
+        #webgl-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none; /* Let clicks pass through if needed, though we will track mouse movement */
+        }
+
+        /* UI Overlay Layer */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            padding: 0 5%;
+            pointer-events: none; /* Let mouse interact with 3D background behind empty spaces */
+        }
+
+        /* Content Container (Left Side) */
+        .content-wrapper {
+            width: 100%;
+            max-width: 650px;
+            pointer-events: auto; /* Enable interaction for text/buttons */
+            background: rgba(3, 7, 5, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 3rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle glow inside the card */
+        .content-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to right, transparent, rgba(0, 240, 118, 0.03), transparent);
+            transform: skewX(-20deg);
+            animation: shine 8s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            20% { left: 200%; }
+            100% { left: 200%; }
+        }
+
+        /* Brand / Logo */
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2rem;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            letter-spacing: 2px;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--emerald), var(--gold));
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--dark-bg);
+            font-size: 0.9rem;
+        }
+
+        .brand-text {
+            background: linear-gradient(to right, #fff, #aaa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Typography */
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 5vw, 4.2rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+            background: linear-gradient(180deg, #FFFFFF 0%, #B0B5B9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 2.5rem;
+            max-width: 90%;
+        }
+
+        /* Feature List */
+        .features {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #E5E7EB;
+            letter-spacing: 0.5px;
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--emerald);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 0 10px var(--emerald-glow);
+        }
+
+        .feature-icon::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--gold);
+            border-radius: 50%;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .ui-layer { padding: 0 2rem; }
+            .content-wrapper { max-width: 550px; padding: 2rem; }
+            h1 { font-size: 3rem; }
+        }
+
+        @media (max-width: 768px) {
+            .features { grid-template-columns: 1fr; gap: 1rem; }
+            .ui-layer { align-items: flex-end; padding-bottom: 2rem; }
+            .content-wrapper { background: rgba(3, 7, 5, 0.7); border: none; box-shadow: none; padding: 1.5rem; }
+            h1 { font-size: 2.5rem; }
+        }
+    </style>
+    
+    <!-- Import Maps for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- 3D Background -->
+    <div id="webgl-container"></div>
+
+    <!-- UI Overlay -->
+    <div class="ui-layer">
+        <div class="content-wrapper">
+            <div class="brand">
+                <div class="brand-icon">AM</div>
+                <span class="brand-text">Adriyan Muhammad</span>
+            </div>
+            
+            <h1>Interactive Landing Page & Portfolio Specialist</h1>
+            
+            <h2>Creating premium web experiences with interactive animations, modern UI, and conversion-focused design.</h2>
+            
+            <ul class="features">
+                <li><div class="feature-icon"></div> Interactive Animations</li>
+                <li><div class="feature-icon"></div> Premium UI Design</li>
+                <li><div class="feature-icon"></div> Responsive Development</li>
+                <li><div class="feature-icon"></div> Fast Delivery</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- WebGL Application -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+        // --- Core Setup ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x030705, 0.03); // Deep environment fog
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        // --- Post-Processing (Holographic Bloom) ---
+        const renderScene = new RenderPass(scene, camera);
+        
+        // Resolution, strength, radius, threshold
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.2;
+        bloomPass.strength = 1.2;
+        bloomPass.radius = 0.5;
+
+        const outputPass = new OutputPass();
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+        composer.addPass(outputPass);
+
+        // --- Lighting ---
+        // Ambient soft emerald glow
+        const ambientLight = new THREE.AmbientLight(0x00F076, 0.15);
+        scene.add(ambientLight);
+
+        // Main directional light (acting as studio key light)
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+        dirLight.position.set(5, 5, 5);
+        scene.add(dirLight);
+
+        // Gold accent light
+        const goldLight = new THREE.PointLight(0xD4AF37, 50, 20);
+        goldLight.position.set(8, -2, 2);
+        scene.add(goldLight);
+
+        // Emerald accent light
+        const emeraldLight = new THREE.PointLight(0x00F076, 40, 20);
+        emeraldLight.position.set(2, 4, 0);
+        scene.add(emeraldLight);
+
+        // --- Materials ---
+        // 1. Premium Glassmorphism Material
+        const glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 0.1,
+            roughness: 0.05,
+            transmission: 0.95, // glass effect
+            ior: 1.5,
+            thickness: 0.5,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 1
+        });
+
+        // 2. Holographic Wireframe/Edge Material (Emerald)
+        const holoMaterial = new THREE.LineBasicMaterial({
+            color: 0x00F076,
+            transparent: true,
+            opacity: 0.6
+        });
+
+        // 3. Solid Gold Material
+        const goldMaterial = new THREE.MeshStandardMaterial({
+            color: 0xD4AF37,
+            metalness: 1.0,
+            roughness: 0.3
+        });
+
+        // 4. Interface Element Base (Dark with slight reflection)
+        const darkPanelMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0a110d,
+            metalness: 0.8,
+            roughness: 0.2,
+            side: THREE.DoubleSide
+        });
+
+        // --- Construction: The Digital Arena ---
+        // Group to hold everything on the right side
+        const arenaGroup = new THREE.Group();
+        // Position it to the right half of the screen
+        arenaGroup.position.set(5, 0, -2);
+        scene.add(arenaGroup);
+
+        const objectsToAnimate = [];
+
+        // Helper function to create glowing edges
+        function createEdges(geometry, material) {
+            const edgesGeometry = new THREE.EdgesGeometry(geometry);
+            return new THREE.LineSegments(edgesGeometry, material);
+        }
+
+        // 1. Central Holographic Core (Wireframe Globe / Data Hub)
+        const coreGeo = new THREE.IcosahedronGeometry(2, 2);
+        const coreEdges = createEdges(coreGeo, holoMaterial);
+        arenaGroup.add(coreEdges);
+        objectsToAnimate.push({ obj: coreEdges, rotX: 0.001, rotY: 0.002, floatSpeed: 0.5, floatAmp: 0.2 });
+
+        // Inner solid core
+        const innerCore = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), darkPanelMaterial);
+        arenaGroup.add(innerCore);
+        objectsToAnimate.push({ obj: innerCore, rotX: -0.005, rotY: 0.005, floatSpeed: 0, floatAmp: 0 });
+
+        // 2. Floating UI Panels (Glassmorphism Cards)
+        const panelGeo = new THREE.PlaneGeometry(3, 2);
+        
+        // Panel 1 (Top Left)
+        const panel1 = new THREE.Mesh(panelGeo, glassMaterial);
+        panel1.position.set(-2, 2, 2);
+        panel1.rotation.set(0, 0.2, -0.1);
+        const p1Edges = createEdges(panelGeo, new THREE.LineBasicMaterial({color: 0xffffff, transparent:true, opacity:0.2}));
+        panel1.add(p1Edges);
+        arenaGroup.add(panel1);
+        objectsToAnimate.push({ obj: panel1, rotX: 0, rotY: 0, floatSpeed: 0.8, floatAmp: 0.3, offset: 0 });
+
+        // Panel 2 (Bottom Right - Portrait Mobile representation)
+        const mobileGeo = new THREE.PlaneGeometry(1.5, 3);
+        const panel2 = new THREE.Mesh(mobileGeo, darkPanelMaterial);
+        panel2.position.set(3, -1.5, 1);
+        panel2.rotation.set(-0.1, -0.3, 0.1);
+        // Add gold accent to mobile panel
+        const goldStrip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3, 0.1), goldMaterial);
+        goldStrip.position.set(-0.7, 0, 0);
+        panel2.add(goldStrip);
+        const p2Edges = createEdges(mobileGeo, holoMaterial);
+        panel2.add(p2Edges);
+        arenaGroup.add(panel2);
+        objectsToAnimate.push({ obj: panel2, rotX: 0, rotY: 0, floatSpeed: 0.6, floatAmp: 0.4, offset: Math.PI });
+
+        // Panel 3 (Background wide dashboard)
+        const dashGeo = new THREE.PlaneGeometry(5, 3);
+        const panel3 = new THREE.Mesh(dashGeo, glassMaterial);
+        panel3.position.set(1, 1, -3);
+        panel3.rotation.set(0.1, -0.2, 0);
+        
+        // Add "Data lines" to dashboard
+        for(let i=0; i<3; i++) {
+            const lineMat = new THREE.MeshBasicMaterial({color: 0x00F076});
+            const line = new THREE.Mesh(new THREE.PlaneGeometry(4 * Math.random(), 0.05), lineMat);
+            line.position.set((Math.random() - 0.5) * 2, (i - 1) * 0.8, 0.1);
+            panel3.add(line);
+        }
+        arenaGroup.add(panel3);
+        objectsToAnimate.push({ obj: panel3, rotX: 0, rotY: 0, floatSpeed: 0.4, floatAmp: 0.2, offset: Math.PI / 2 });
+
+        // 3. Orbiting Data Rings
+        const ringGeo = new THREE.TorusGeometry(4, 0.01, 16, 100);
+        const ring1 = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({color: 0xD4AF37, transparent: true, opacity: 0.5}));
+        ring1.rotation.x = Math.PI / 2;
+        arenaGroup.add(ring1);
+        objectsToAnimate.push({ obj: ring1, rotX: 0.001, rotY: 0.005, rotZ: 0, floatSpeed: 0, floatAmp: 0 });
+
+        const ring2 = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({color: 0x00F076, transparent: true, opacity: 0.3}));
+        ring2.rotation.y = Math.PI / 3;
+        ring2.scale.set(1.2, 1.2, 1.2);
+        arenaGroup.add(ring2);
+        objectsToAnimate.push({ obj: ring2, rotX: -0.002, rotY: 0, rotZ: 0.004, floatSpeed: 0, floatAmp: 0 });
+
+        // 4. Floating Geometric Particles (Subtle atmospheric depth)
+        const particleGeo = new THREE.BufferGeometry();
+        const particleCount = 150;
+        const posArray = new Float32Array(particleCount * 3);
+        for(let i=0; i<particleCount*3; i++) {
+            // Spread particles around the arena
+            posArray[i] = (Math.random() - 0.5) * 15;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particleMat = new THREE.PointsMaterial({
+            size: 0.05,
+            color: 0x00F076,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        const particles = new THREE.Points(particleGeo, particleMat);
+        arenaGroup.add(particles);
+
+        // --- Interaction (Mouse Parallax) ---
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetX = 0;
+        let targetY = 0;
+        const windowHalfX = window.innerWidth / 2;
+        const windowHalfY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - windowHalfX) * 0.001;
+            mouseY = (event.clientY - windowHalfY) * 0.001;
+        });
+
+        // --- Resize Handler ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Adjust arena position based on screen width to ensure text isn't covered on smaller screens
+            if(window.innerWidth < 1024) {
+                arenaGroup.position.set(0, 0, -5); // Move center/back on mobile
+            } else {
+                arenaGroup.position.set(5, 0, -2); // Right side on desktop
+            }
+        });
+        
+        // Initial check for layout
+        if(window.innerWidth < 1024) arenaGroup.position.set(0, 0, -5);
+
+        // --- Animation Loop ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            // Ease mouse movement for smooth parallax
+            targetX = mouseX * 0.5;
+            targetY = mouseY * 0.5;
+            
+            // Apply subtle parallax to the whole arena group
+            arenaGroup.rotation.y += 0.05 * (targetX - arenaGroup.rotation.y);
+            arenaGroup.rotation.x += 0.05 * (targetY - arenaGroup.rotation.x);
+
+            // Animate individual objects
+            objectsToAnimate.forEach(item => {
+                // Rotation
+                if(item.rotX) item.obj.rotation.x += item.rotX;
+                if(item.rotY) item.obj.rotation.y += item.rotY;
+                if(item.rotZ) item.obj.rotation.z += item.rotZ;
+
+                // Floating (Sine wave)
+                if(item.floatSpeed > 0) {
+                    const offset = item.offset || 0;
+                    // Store initial Y if not stored
+                    if (item.initialY === undefined) item.initialY = item.obj.position.y;
+                    item.obj.position.y = item.initialY + Math.sin(elapsedTime * item.floatSpeed + offset) * item.floatAmp;
+                }
+            });
+
+            // Slowly rotate particle system
+            particles.rotation.y = elapsedTime * 0.02;
+
+            // Render through composer for bloom effect
+            composer.render();
+        }
+
+        animate();
+    </script>
+</body>
+</html>
